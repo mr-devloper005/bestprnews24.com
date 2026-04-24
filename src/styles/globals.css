@@ -4,25 +4,25 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(0.985 0 0);
-  --foreground: oklch(0.15 0 0);
+  --background: oklch(0.985 0.005 40);
+  --foreground: oklch(0.2 0.03 18);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.15 0 0);
+  --card-foreground: oklch(0.2 0.03 18);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.15 0 0);
-  --primary: oklch(0.22 0.02 255);
+  --popover-foreground: oklch(0.2 0.03 18);
+  --primary: oklch(0.43 0.16 341);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.96 0 0);
-  --secondary-foreground: oklch(0.22 0.02 255);
-  --muted: oklch(0.96 0 0);
-  --muted-foreground: oklch(0.5 0 0);
-  --accent: oklch(0.94 0.02 255);
-  --accent-foreground: oklch(0.22 0.02 255);
+  --secondary: oklch(0.95 0.02 50);
+  --secondary-foreground: oklch(0.29 0.06 24);
+  --muted: oklch(0.95 0.01 40);
+  --muted-foreground: oklch(0.53 0.03 24);
+  --accent: oklch(0.83 0.16 65);
+  --accent-foreground: oklch(0.27 0.06 22);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --border: oklch(0.88 0.02 30);
+  --input: oklch(0.88 0.02 30);
+  --ring: oklch(0.62 0.14 341);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -125,8 +125,36 @@
   body {
     @apply bg-background text-foreground;
     overflow-x: hidden;
+    font-feature-settings: 'ss01' on;
+    text-rendering: optimizeLegibility;
   }
   #__next {
     overflow-x: hidden;
+  }
+}
+
+@layer utilities {
+  .brand-gradient-text {
+    background: linear-gradient(120deg, #ffcc00 0%, #eb5b00 45%, #b12c00 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .brand-card-shadow {
+    box-shadow: 0 20px 52px rgba(100, 13, 95, 0.12);
+  }
+
+  .hover-rise {
+    transition: transform 240ms ease, box-shadow 240ms ease;
+  }
+
+  .hover-rise:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px rgba(17, 24, 39, 0.14);
+  }
+
+  .hero-overlay {
+    background: linear-gradient(110deg, rgba(20, 8, 33, 0.88), rgba(47, 17, 66, 0.72) 46%, rgba(100, 13, 95, 0.5));
   }
 }
