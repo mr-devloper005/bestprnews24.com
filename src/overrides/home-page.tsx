@@ -84,7 +84,7 @@ export async function HomePageOverride() {
                 "url('https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1920&q=80')",
             }}
           />
-          <div className="hero-overlay absolute inset-0" />
+          <div className="hero-overlay absolute inset-0 bg-black/40" />
           <div className="relative mx-auto grid max-w-7xl gap-10 px-4 py-20 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:px-8 lg:py-28">
             <div className="text-white">
               <p className="inline-flex rounded-full border border-[#FFCC00]/40 bg-[#FFCC00]/12 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-[#FFCC00]">
@@ -169,12 +169,14 @@ export async function HomePageOverride() {
             </ul>
           </div>
           <div className="overflow-hidden rounded-3xl border border-[#ead2eb] bg-white p-4">
-            <img
-              src="https://images.unsplash.com/photo-1507206130118-b5907d167e09?auto=format&fit=crop&w=900&q=80"
-              alt="Person holding open sign"
-              className="h-full min-h-[320px] w-full rounded-2xl object-cover"
-              loading="lazy"
-            />
+            <div className="grid gap-3 sm:grid-cols-1">
+              <img
+                src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=900&q=80"
+                alt="Diverse group collaborating"
+                className="h-full min-h-[320px] w-full rounded-2xl object-cover"
+                loading="lazy"
+              />
+            </div>
           </div>
         </section>
 
