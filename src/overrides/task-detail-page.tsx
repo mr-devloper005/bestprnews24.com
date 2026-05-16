@@ -1,119 +1,156 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { Facebook, Linkedin, Link2, Twitter } from 'lucide-react'
+import { Facebook, Linkedin, Link2, Mail, Twitter } from 'lucide-react'
 import { NavbarShell } from '@/components/shared/navbar-shell'
 import { Footer } from '@/components/shared/footer'
-import { fetchTaskPostBySlug, fetchTaskPosts } from '@/lib/task-data'
+import { ContentImage } from '@/components/shared/content-image'
+import { fetchTaskPostBySlug, fetchTaskPosts, buildPostUrl } from '@/lib/task-data'
 import type { TaskKey } from '@/lib/site-config'
+import type { SitePost } from '@/lib/site-connector'
+import { SITE_CONFIG } from '@/lib/site-config'
 import { formatRichHtml, RichContent } from '@/components/shared/rich-content'
 
 export const TASK_DETAIL_PAGE_OVERRIDE_ENABLED = true
 
+const isValidImageUrl = (value?: string | null) =>
+  typeof value === 'string' && (value.startsWith('/') || /^https?:\/\//i.test(value))
+
+const getContent = (post: SitePost) => {
+  const content = post.content && typeof post.content === 'object' ? post.content : {}
+  return content as Record<string, unknown>
+}
+
+const getImageUrls = (post: SitePost, content: Record<string, unknown>) => {
+  const media = Array.isArray(post.media) ? post.media : []
+  const mediaImages = media.map((item) => item?.url).filter((url): url is string => isValidImageUrl(url))
+  const contentImages = Array.isArray(content.images)
+    ? content.images.filter((url): url is string => typeof url === 'string' && isValidImageUrl(url))
+    : []
+  const merged = [...mediaImages, ...contentImages]
+  if (merged.length) return merged
+  if (isValidImageUrl(content.logo as string)) return [content.logo as string]
+  return [] as string[]
+}
+
 export async function TaskDetailPageOverride({ slug }: { task: TaskKey; slug: string }) {
   const post = await fetchTaskPostBySlug('mediaDistribution', slug)
   if (!post) notFound()
-  const recent = (await fetchTaskPosts('mediaDistribution', 10, { fresh: true })).filter((item) => item.slug !== slug).slice(0, 6)
-  const content = (post.content || {}) as Record<string, unknown>
-  const html = formatRichHtml((content.body as string) || post.summary || '', 'Post body will appear here.')
-  const shareUrl = `/updates/${post.slug}`
+
+  const related = (await fetchTaskPosts('mediaDistribution', 8, { fresh: true }))
+    .filter((item) => item.slug !== slug)
+    .slice(0, 4)
+
+  const content = getContent(post)
+  const rawBody =
+    (typeof content.body === 'string' && content.body.trim()) ||
+    (typeof content.description === 'string' && content.description.trim()) ||
+    post.summary ||
+    ''
+  const html = formatRichHtml(rawBody, '')
+  const images = getImageUrls(post, content)
+  const hero = images[0]
+  const archivePath = SITE_CONFIG.taskViews.mediaDistribution || '/updates'
+  const pageUrl = `${SITE_CONFIG.baseUrl.replace(/\/$/, '')}${buildPostUrl('mediaDistribution', post.slug)}`
+  const shareText = encodeURIComponent(post.title)
+  const shareUrl = encodeURIComponent(pageUrl)
+  const date = post.publishedAt
+    ? new Date(post.publishedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    : ''
 
   return (
-    <div className="min-h-screen bg-[#f8f4f9] text-[#22072f]">
+    <div className="min-h-screen bg-white text-foreground">
       <NavbarShell />
-      <section className="bg-[#2a0a3f] py-14 text-white">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#FFCC00]">Single Press Release</p>
-          <h1 className="mt-3 max-w-5xl text-4xl font-bold leading-tight tracking-tight sm:text-5xl">{post.title}</h1>
-          <p className="mt-4 max-w-3xl text-sm leading-7 text-[#ead3ef]">
-            Official media release from {post.authorName || 'Editorial Desk'} with timeline, story context, and distribution-ready detail.
-          </p>
-          <div className="mt-5 flex flex-wrap items-center gap-3 text-sm text-[#e4c8eb]">
-            <Link href="/" className="hover:text-white">Home</Link>
-            <span>›</span>
-            <Link href="/updates" className="hover:text-white">Latest News</Link>
-            <span>›</span>
-            <span className="truncate text-white">{post.title}</span>
-          </div>
-        </div>
-      </section>
 
-      <main className="mx-auto grid max-w-7xl gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_310px] lg:px-8">
-        <article className="rounded-3xl border border-[#e7cde9] bg-white p-5 sm:p-8">
-          <div className="overflow-hidden rounded-2xl border border-[#ecd9ef]">
-            <img
-              src="https://images.unsplash.com/photo-1551818255-e6e10975cd17?auto=format&fit=crop&w=1400&q=80"
-              alt="Featured press release"
-              className="h-[280px] w-full object-cover sm:h-[380px]"
-            />
-          </div>
+      <article className="mx-auto max-w-6xl px-4 pb-16 pt-8 sm:px-6 lg:pt-12">
+        <nav className="text-xs font-medium text-muted-foreground">
+          <Link href="/" className="hover:text-primary">
+            Home
+          </Link>
+          <span className="mx-2 opacity-40">/</span>
+          <Link href={archivePath} className="hover:text-primary">
+            Press releases
+          </Link>
+        </nav>
 
-            <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#efdff1] bg-[#faf5fb] px-4 py-3 text-sm">
-            <div className="flex flex-wrap items-center gap-3 text-[#5b3554]">
-              <span>By {post.authorName || 'Editorial Desk'}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <a href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(post.title)}`} className="rounded-full border border-[#ddc3e0] p-2 text-[#640D5F] hover:bg-white">
+        <div className="mt-8 grid gap-12 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-14">
+          <div className="min-w-0">
+            <h1 className="font-[family-name:var(--font-display)] text-3xl font-semibold leading-[1.12] tracking-[-0.03em] text-foreground sm:text-4xl lg:text-[2.35rem]">
+              {post.title}
+            </h1>
+
+            {date ? (
+              <div className="mt-5 text-sm text-muted-foreground">
+                <span>{date}</span>
+              </div>
+            ) : null}
+
+            <div className="mt-6 flex flex-wrap gap-2">
+              <a
+                href={`https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-white text-foreground shadow-sm transition hover:border-primary/40 hover:bg-muted"
+                aria-label="Share on X"
+              >
                 <Twitter className="h-4 w-4" />
-                <span className="sr-only">Share on X</span>
               </a>
-              <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`} className="rounded-full border border-[#ddc3e0] p-2 text-[#640D5F] hover:bg-white">
-                <Facebook className="h-4 w-4" />
-                <span className="sr-only">Share on Facebook</span>
-              </a>
-              <a href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`} className="rounded-full border border-[#ddc3e0] p-2 text-[#640D5F] hover:bg-white">
+              <a
+                href={`https://www.linkedin.com/sharing/share-offsite/?url=${shareUrl}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-white text-foreground shadow-sm transition hover:border-primary/40 hover:bg-muted"
+                aria-label="Share on LinkedIn"
+              >
                 <Linkedin className="h-4 w-4" />
-                <span className="sr-only">Share on LinkedIn</span>
               </a>
-              <a href={shareUrl} className="rounded-full border border-[#ddc3e0] p-2 text-[#640D5F] hover:bg-white">
-                <Link2 className="h-4 w-4" />
-                <span className="sr-only">Copy link</span>
+              <a
+                href={`https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-white text-foreground shadow-sm transition hover:border-primary/40 hover:bg-muted"
+                aria-label="Share on Facebook"
+              >
+                <Facebook className="h-4 w-4" />
               </a>
+              <a
+                href={`mailto:?subject=${shareText}&body=${shareUrl}`}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-white text-foreground shadow-sm transition hover:border-primary/40 hover:bg-muted"
+                aria-label="Email this release"
+              >
+                <Mail className="h-4 w-4" />
+              </a>
+              <span className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-3 py-2 text-xs text-muted-foreground">
+                <Link2 className="h-3.5 w-3.5" />
+                {pageUrl.replace(/^https?:\/\//, '')}
+              </span>
             </div>
+
+            {hero ? (
+              <div className="relative mt-10 aspect-[16/9] w-full overflow-hidden rounded-[1.25rem] border border-border bg-muted shadow-sm">
+                <ContentImage src={hero} alt={post.title} fill className="object-cover" priority />
+              </div>
+            ) : null}
+
+            <RichContent html={html} className="article-content mt-10 max-w-none text-[1.05rem] leading-[1.75] text-foreground/90" />
           </div>
 
-          <div className="prose prose-lg mt-8 max-w-none prose-headings:text-[#2f1139] prose-p:text-[#51314b] prose-a:text-[#B12C00]">
-            <RichContent html={html} />
-          </div>
-
-          <section className="mt-10 border-t border-[#f0dff2] pt-8">
-            <h2 className="text-2xl font-semibold text-[#2f1139]">Related articles</h2>
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
-              {recent.slice(0, 4).map((item) => (
-                <Link key={item.id} href={`/updates/${item.slug}`} className="rounded-2xl border border-[#ecd6ef] bg-[#faf5fb] p-4 hover:bg-[#f4e9f7]">
-                  <p className="text-xs uppercase tracking-[0.16em] text-[#9a558f]">Related Story</p>
-                  <p className="mt-2 text-base font-semibold leading-7 text-[#34173d]">{item.title}</p>
-                </Link>
-              ))}
+          <aside className="space-y-6 lg:pt-2">
+            <div className="rounded-[1.25rem] border border-border bg-white p-6 shadow-sm">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">More releases</p>
+              <ul className="mt-4 space-y-4">
+                {related.map((item) => (
+                  <li key={item.id}>
+                    <Link href={buildPostUrl('mediaDistribution', item.slug)} className="block text-sm font-semibold leading-snug text-foreground hover:text-primary">
+                      {item.title}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </div>
-          </section>
-        </article>
+          </aside>
+        </div>
+      </article>
 
-        <aside className="space-y-5">
-          <div className="rounded-3xl border border-[#e7cfe9] bg-white p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#a4569a]">Latest News</p>
-            <div className="mt-4 space-y-3">
-              {recent.slice(0, 5).map((item) => (
-                <Link key={item.id} href={`/updates/${item.slug}`} className="block rounded-xl border border-[#eddcf0] bg-[#faf6fc] px-4 py-3 hover:bg-[#f3e8f6]">
-                  <p className="text-sm leading-6 text-[#4e2a41]">{item.title}</p>
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          <div className="rounded-3xl border border-[#e7cfe9] bg-white p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#a4569a]">Launch Your Story</p>
-            <p className="mt-3 text-sm leading-7 text-[#5b3554]">
-              Ready to publish your own release? Create a distribution-ready story page in minutes.
-            </p>
-            <Link
-              href="/create/mediaDistribution"
-              className="mt-4 inline-flex rounded-full bg-[#EB5B00] px-4 py-2 text-sm font-semibold text-white hover:bg-[#B12C00]"
-            >
-              Submit Release
-            </Link>
-          </div>
-        </aside>
-      </main>
       <Footer />
     </div>
   )
